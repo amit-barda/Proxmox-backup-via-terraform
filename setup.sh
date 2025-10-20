@@ -88,10 +88,10 @@ validate_ip() {
 
 # Function to get NFS storage configuration
 configure_nfs_storage() {
-    echo "┌─ NFS Storage Configuration ─────────────────────────────────┐"
-    echo "│ Configure shared storage for Proxmox cluster               │"
-    echo "└─────────────────────────────────────────────────────────────┘"
-    echo ""
+    echo "┌─ NFS Storage Configuration ─────────────────────────────────┐" 1>&2
+    echo "│ Configure shared storage for Proxmox cluster               │" 1>&2
+    echo "└─────────────────────────────────────────────────────────────┘" 1>&2
+    echo "" 1>&2
     
     read -p "Storage identifier (e.g., backup-nfs, iso-storage): " storage_name
     [[ -z "$storage_name" ]] && error_exit "Storage name cannot be empty"
@@ -104,7 +104,7 @@ configure_nfs_storage() {
     read -p "NFS export path (e.g., /mnt/backup, /exports/iso): " export_path
     [[ -z "$export_path" ]] && error_exit "Export path cannot be empty"
     
-    echo "Content types: backup, iso, vztmpl, images, rootdir"
+    echo "Content types: backup, iso, vztmpl, images, rootdir" 1>&2
     read -p "Content types (comma-separated): " content_types
     [[ -z "$content_types" ]] && content_types="backup"
     
@@ -124,16 +124,16 @@ configure_nfs_storage() {
         storage_config="\"$storage_name\":{\"server\":\"$server_ip\",\"export\":\"$export_path\",\"content\":[$content_array],\"nodes\":[$nodes_array],\"maxfiles\":$maxfiles,\"enabled\":true}"
     fi
     
-    log "NFS storage configured: $storage_name -> $server_ip:$export_path"
+    log "NFS storage configured: $storage_name -> $server_ip:$export_path" 1>&2
     echo "$storage_config"
 }
 
 # Function to configure backup job
 configure_backup_job() {
-    echo "┌─ Backup Job Configuration ───────────────────────────────────┐"
-    echo "│ Configure automated backup jobs for VMs                    │"
-    echo "└─────────────────────────────────────────────────────────────┘"
-    echo ""
+    echo "┌─ Backup Job Configuration ───────────────────────────────────┐" 1>&2
+    echo "│ Configure automated backup jobs for VMs                    │" 1>&2
+    echo "└─────────────────────────────────────────────────────────────┘" 1>&2
+    echo "" 1>&2
     
     read -p "Job identifier (e.g., daily-backup, weekly-full): " job_id
     [[ -z "$job_id" ]] && error_exit "Job ID cannot be empty"
@@ -144,14 +144,14 @@ configure_backup_job() {
     read -p "Target storage (must match NFS storage name): " storage_name
     [[ -z "$storage_name" ]] && error_exit "Storage name cannot be empty"
     
-    echo "Schedule examples:"
-    echo "  Daily at 2 AM:    0 2 * * *"
-    echo "  Weekly Sunday:    0 3 * * 0"
-    echo "  Every 6 hours:    0 */6 * * *"
+    echo "Schedule examples:" 1>&2
+    echo "  Daily at 2 AM:    0 2 * * *" 1>&2
+    echo "  Weekly Sunday:    0 3 * * 0" 1>&2
+    echo "  Every 6 hours:    0 */6 * * *" 1>&2
     read -p "Cron schedule: " schedule
     [[ -z "$schedule" ]] && error_exit "Schedule cannot be empty"
     
-    echo "Backup modes: snapshot (live), stop (shutdown), suspend (pause)"
+    echo "Backup modes: snapshot (live), stop (shutdown), suspend (pause)" 1>&2
     read -p "Backup mode [snapshot]: " mode
     mode=${mode:-snapshot}
     
@@ -172,7 +172,7 @@ configure_backup_job() {
     # Build the job configuration
     job_config="\"$job_id\":{\"vms\":[$vm_array],\"storage\":\"$storage_name\",\"schedule\":\"$schedule\",\"mode\":\"$mode\",\"maxfiles\":$maxfiles}"
     
-    log "Backup job configured: $job_id for VMs $vm_ids"
+    log "Backup job configured: $job_id for VMs $vm_ids" 1>&2
     echo "$job_config"
 }
 
@@ -253,15 +253,15 @@ log "  - Backup jobs: $job_count"
 
 terraform_command="terraform apply -var=\"nfs_storages={$storages}\" -var=\"backup_jobs={$jobs}\""
 
-echo "Deployment command:"
-echo "$terraform_command"
-echo ""
+echo "Deployment command:" 1>&2
+echo "$terraform_command" 1>&2
+echo "" 1>&2
 
 # Pre-deployment validation
-echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                    Pre-deployment Validation                ║"
-echo "╚══════════════════════════════════════════════════════════════╝"
-echo ""
+echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
+echo "║                    Pre-deployment Validation                ║" 1>&2
+echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
+echo "" 1>&2
 
 log "Running pre-deployment validation..."
 terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" > /dev/null 2>&1 || error_exit "Pre-deployment validation failed"
@@ -272,10 +272,10 @@ read -p "Proceed with infrastructure deployment? (y/N): " deploy_now
 
 if [[ "$deploy_now" =~ ^[Yy]$ ]]; then
     echo ""
-    echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                    Deploying Infrastructure                 ║"
-    echo "╚══════════════════════════════════════════════════════════════╝"
-    echo ""
+    echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
+    echo "║                    Deploying Infrastructure                 ║" 1>&2
+    echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
+    echo "" 1>&2
     
     log "Starting infrastructure deployment..."
     eval $terraform_command
@@ -283,30 +283,30 @@ if [[ "$deploy_now" =~ ^[Yy]$ ]]; then
     if [ $? -eq 0 ]; then
         log "Infrastructure deployment completed successfully"
         echo ""
-        echo "╔══════════════════════════════════════════════════════════════╗"
-        echo "║                    Deployment Complete                      ║"
-        echo "╚══════════════════════════════════════════════════════════════╝"
-        echo ""
-        echo "✅ Infrastructure successfully provisioned!"
-        echo "📋 Log file: $LOG_FILE"
-        echo ""
-        echo "Next steps:"
-        echo "  - Verify NFS storages in Proxmox web interface"
-        echo "  - Check backup jobs in Datacenter > Backup"
-        echo "  - Test backup jobs manually if needed"
+        echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
+        echo "║                    Deployment Complete                      ║" 1>&2
+        echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
+        echo "" 1>&2
+        echo "✅ Infrastructure successfully provisioned!" 1>&2
+        echo "📋 Log file: $LOG_FILE" 1>&2
+        echo "" 1>&2
+        echo "Next steps:" 1>&2
+        echo "  - Verify NFS storages in Proxmox web interface" 1>&2
+        echo "  - Check backup jobs in Datacenter > Backup" 1>&2
+        echo "  - Test backup jobs manually if needed" 1>&2
     else
         error_exit "Infrastructure deployment failed"
     fi
 else
     echo ""
-    echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                    Deployment Cancelled                     ║"
-    echo "╚══════════════════════════════════════════════════════════════╝"
-    echo ""
-    echo "📋 Configuration saved. Run this command when ready:"
-    echo "$terraform_command"
-    echo ""
-    echo "📋 Log file: $LOG_FILE"
+    echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
+    echo "║                    Deployment Cancelled                     ║" 1>&2
+    echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
+    echo "" 1>&2
+    echo "📋 Configuration saved. Run this command when ready:" 1>&2
+    echo "$terraform_command" 1>&2
+    echo "" 1>&2
+    echo "📋 Log file: $LOG_FILE" 1>&2
 fi
 
 log "Script execution completed"

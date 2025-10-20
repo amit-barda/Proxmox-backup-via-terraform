@@ -21,6 +21,23 @@ variable "pm_tls_insecure" {
   default     = false
 }
 
+# SSH to Proxmox node for pvesh execution
+variable "pm_ssh_host" {
+  description = "Proxmox node hostname/IP for SSH (to run pvesh)"
+  type        = string
+}
+
+variable "pm_ssh_user" {
+  description = "SSH user to connect to Proxmox node"
+  type        = string
+  default     = "root"
+}
+
+variable "pm_ssh_private_key_path" {
+  description = "Path to SSH private key for Proxmox node"
+  type        = string
+}
+
 # NFS Storage configuration - Interactive input
 variable "nfs_storages" {
   description = "Map of NFS storage configurations"
@@ -56,8 +73,8 @@ variable "backup_jobs" {
 
   validation {
     condition = alltrue([
-      for job in var.backup_jobs : job.schedule != ""
+      for job in var.backup_jobs : length(trim(job.schedule)) > 0
     ])
-    error_message = "Backup job schedule cannot be empty."
+    error_message = "Backup job schedule cannot be empty. Example: 0 2 * * *."
   }
 }

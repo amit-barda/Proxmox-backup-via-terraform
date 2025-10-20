@@ -34,3 +34,19 @@ variable "enabled" {
   type        = bool
   default     = true
 }
+
+# SSH inputs (passed-through from root variables)
+variable "pm_ssh_host" {
+  description = "Proxmox node hostname/IP for SSH"
+  type        = string
+}
+
+variable "pm_ssh_user" {
+  description = "SSH user for Proxmox node"
+  type        = string
+}
+
+variable "pm_ssh_private_key_path" {
+  description = "Path to SSH private key"
+  type        = string
+}

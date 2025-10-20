@@ -12,22 +12,18 @@ resource "null_resource" "backup_job" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      # Create backup job using pvesh
-      pvesh create /cluster/backup \
-        --id "${var.id}" \
-        --storage "${var.storage}" \
-        --vms "${join(",", var.vms)}" \
-        --schedule "${var.schedule}" \
-        --mode "${var.mode}" \
-        --maxfiles "${var.maxfiles}"
+      # Create backup job via SSH + pvesh
+      ssh -o StrictHostKeyChecking=no -i "${var.pm_ssh_private_key_path}" "${var.pm_ssh_user}@${var.pm_ssh_host}" \
+        "pvesh create /cluster/backup --id '${var.id}' --storage '${var.storage}' --vms '${join(",", var.vms)}' --schedule '${var.schedule}' --mode '${var.mode}' --maxfiles '${var.maxfiles}'"
     EOT
   }
 
   provisioner "local-exec" {
     when    = destroy
     command = <<-EOT
-      # Delete backup job using pvesh
-      pvesh delete /cluster/backup/${self.triggers.id} || true
+      # Delete backup job via SSH + pvesh
+      ssh -o StrictHostKeyChecking=no -i "${var.pm_ssh_private_key_path}" "${var.pm_ssh_user}@${var.pm_ssh_host}" \
+        "pvesh delete /cluster/backup/${self.triggers.id}" || true
     EOT
   }
 }

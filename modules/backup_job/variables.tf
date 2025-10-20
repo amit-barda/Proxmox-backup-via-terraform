@@ -32,3 +32,19 @@ variable "maxfiles" {
   description = "Maximum number of backup files to keep"
   type        = number
 }
+
+# SSH inputs (passed-through)
+variable "pm_ssh_host" {
+  description = "Proxmox node hostname/IP for SSH"
+  type        = string
+}
+
+variable "pm_ssh_user" {
+  description = "SSH user for Proxmox node"
+  type        = string
+}
+
+variable "pm_ssh_private_key_path" {
+  description = "Path to SSH private key"
+  type        = string
+}
