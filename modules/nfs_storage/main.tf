@@ -18,7 +18,17 @@ resource "null_resource" "nfs_storage" {
     command = <<-EOT
       # Create NFS storage on Proxmox via SSH + pvesh
       ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
-        "pvesh create /storage --storage '${self.triggers.storage_name}' --type nfs --server '${self.triggers.server}' --export '${self.triggers.export}' --content '${self.triggers.content}' --nodes '${self.triggers.nodes}' ${self.triggers.maxfiles != "" ? format("--maxfiles %s", self.triggers.maxfiles) : ""} ${self.triggers.enabled == "false" ? "--disable" : ""}"
+        "pvesh create /storage --storage '${self.triggers.storage_name}' --type nfs --server '${self.triggers.server}' --export '${self.triggers.export}' --content '${self.triggers.content}' --nodes '${self.triggers.nodes}' ${self.triggers.enabled == "false" ? "--disable" : ""}"
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Configure maxfiles if specified
+      if [ "${self.triggers.maxfiles}" != "" ] && [ "${self.triggers.maxfiles}" != "null" ]; then
+        ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
+          "pvesh set /storage/${self.triggers.storage_name} --maxfiles ${self.triggers.maxfiles}"
+      fi
     EOT
   }
 
