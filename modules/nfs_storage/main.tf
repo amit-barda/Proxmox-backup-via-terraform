@@ -9,13 +9,16 @@ resource "null_resource" "nfs_storage" {
     nodes        = join(",", var.nodes)
     maxfiles     = var.maxfiles
     enabled      = var.enabled
+    pm_ssh_host  = var.pm_ssh_host
+    pm_ssh_user  = var.pm_ssh_user
+    pm_ssh_key   = var.pm_ssh_private_key_path
   }
 
   provisioner "local-exec" {
     command = <<-EOT
       # Create NFS storage on Proxmox via SSH + pvesh
-      ssh -o StrictHostKeyChecking=no -i "${var.pm_ssh_private_key_path}" "${var.pm_ssh_user}@${var.pm_ssh_host}" \
-        "pvesh create /storage --storage '${var.storage_name}' --type nfs --server '${var.server}' --export '${var.export}' --content '${join(",", var.content)}' --nodes '${join(",", var.nodes)}' ${var.maxfiles != null ? format("--maxfiles %d", var.maxfiles) : ""} ${!var.enabled ? "--disable" : ""}"
+      ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
+        "pvesh create /storage --storage '${self.triggers.storage_name}' --type nfs --server '${self.triggers.server}' --export '${self.triggers.export}' --content '${self.triggers.content}' --nodes '${self.triggers.nodes}' ${self.triggers.maxfiles != "" ? format("--maxfiles %s", self.triggers.maxfiles) : ""} ${self.triggers.enabled == "false" ? "--disable" : ""}"
     EOT
   }
 
@@ -23,7 +26,7 @@ resource "null_resource" "nfs_storage" {
     when    = destroy
     command = <<-EOT
       # Delete NFS storage via SSH + pvesh
-      ssh -o StrictHostKeyChecking=no -i "${var.pm_ssh_private_key_path}" "${var.pm_ssh_user}@${var.pm_ssh_host}" \
+      ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
         "pvesh delete /storage/${self.triggers.storage_name}" || true
     EOT
   }
