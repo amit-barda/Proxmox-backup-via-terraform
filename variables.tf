@@ -73,7 +73,7 @@ variable "backup_jobs" {
 
   validation {
     condition = alltrue([
-      for job in var.backup_jobs : length(trim(job.schedule)) > 0
+      for job in var.backup_jobs : length(trimspace(job.schedule)) > 0
     ])
     error_message = "Backup job schedule cannot be empty. Example: 0 2 * * *."
   }
