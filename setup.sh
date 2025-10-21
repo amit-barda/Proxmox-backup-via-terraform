@@ -269,7 +269,8 @@ echo "⏳ Quick validation (${VALIDATION_TIMEOUT}s timeout)..." 1>&2
 
 # Run terraform plan with timeout (disable exit on error temporarily)
 set +e
-timeout $VALIDATION_TIMEOUT terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" > /dev/null 2>&1
+echo "🔍 Running terraform plan to check configuration..." 1>&2
+timeout $VALIDATION_TIMEOUT terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" 2>&1 | tee -a "$LOG_FILE"
 PLAN_EXIT_CODE=$?
 set -e
 
@@ -283,15 +284,43 @@ elif [ $PLAN_EXIT_CODE -eq 0 ]; then
     log "Pre-deployment validation passed"
     echo "✅ Configuration validation successful" 1>&2
 else
-    error_exit "Pre-deployment validation failed (exit code: $PLAN_EXIT_CODE)"
+    echo "" 1>&2
+    echo "❌ Pre-deployment validation failed (exit code: $PLAN_EXIT_CODE)" 1>&2
+    echo "📋 Check the error details above" 1>&2
+    echo "" 1>&2
+    echo "Options:" 1>&2
+    echo "  f - Fix configuration and retry" 1>&2
+    echo "  s - Skip validation and deploy anyway" 1>&2
+    echo "  c - Cancel deployment" 1>&2
+    read -p "What would you like to do? (f/s/c): " error_action
+    
+    case $error_action in
+        [Ff]*)
+            echo "Please fix the configuration and run the script again" 1>&2
+            exit 1
+            ;;
+        [Ss]*)
+            echo "⚠️  Skipping validation - proceeding with deployment..." 1>&2
+            ;;
+        [Cc]*|*)
+            echo "Deployment cancelled" 1>&2
+            exit 0
+            ;;
+    esac
 fi
 
-echo ""
-echo "Options:" 1>&2
-echo "  y - Proceed with deployment" 1>&2
-echo "  s - Skip validation and deploy directly" 1>&2
-echo "  n - Cancel deployment" 1>&2
-read -p "Proceed with infrastructure deployment? (y/s/N): " deploy_now
+# Only show deployment options if validation passed or was skipped
+if [ $PLAN_EXIT_CODE -eq 0 ] || [ $PLAN_EXIT_CODE -eq 124 ]; then
+    echo ""
+    echo "Options:" 1>&2
+    echo "  y - Proceed with deployment" 1>&2
+    echo "  s - Skip validation and deploy directly" 1>&2
+    echo "  n - Cancel deployment" 1>&2
+    read -p "Proceed with infrastructure deployment? (y/s/N): " deploy_now
+else
+    # If validation failed and user chose to skip, set deploy_now to 's'
+    deploy_now="s"
+fi
 
 if [[ "$deploy_now" =~ ^[Yy]$ ]] || [[ "$deploy_now" =~ ^[Ss]$ ]]; then
     echo ""
