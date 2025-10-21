@@ -7,23 +7,41 @@ This Terraform-based infrastructure automation solution provides enterprise-grad
 ## Enterprise Deployment Guide
 
 ### Prerequisites
-- **Terraform** >= 1.6 (validated with 1.6+)
+- **Terraform** >= 1.6 (auto-installed by install.sh)
 - **Proxmox VE CLI** (`pvesh` command)
 - **Network connectivity** to Proxmox cluster
 - **Administrative privileges** on Proxmox nodes
+- **Supported OS**: Linux (Debian/Ubuntu, RHEL/CentOS, Fedora), macOS
 
 ### Quick Deployment
 
-1. **Environment Setup:**
+1. **One-Command Installation:**
+   ```bash
+   # Clone and run automated installation
+   git clone https://github.com/amit-barda/Proxmox-backup-via-terraform.git
+   cd Proxmox-backup-via-terraform
+   sudo ./install.sh
+   ```
+   
+   The installation script will:
+   - **Auto-install Terraform** (if not present or version < 1.6)
+   - **Install dependencies** (curl, unzip, jq, openssh)
+   - **Detect system architecture** (Linux/macOS, amd64/arm64)
+   - **Run interactive setup** automatically
+
+2. **Manual Installation (Alternative):**
    ```bash
    # Clone and navigate to project directory
    cd proxmox-backup
    
    # Make setup script executable
    chmod +x setup.sh
+   
+   # Configure Proxmox Authentication
+   # Edit terraform.tfvars with your cluster details
    ```
 
-2. **Configure Proxmox Authentication:**
+3. **Configure Proxmox Authentication:**
    Edit `terraform.tfvars` with your cluster details:
    ```hcl
    pm_api_url      = "https://your-proxmox-cluster:8006/api2/json"
@@ -32,7 +50,7 @@ This Terraform-based infrastructure automation solution provides enterprise-grad
    pm_tls_insecure = false  # Set to true only for development
    ```
 
-3. **Interactive Infrastructure Provisioning:**
+4. **Interactive Infrastructure Provisioning:**
    ```bash
    ./setup.sh
    ```
@@ -44,7 +62,7 @@ This Terraform-based infrastructure automation solution provides enterprise-grad
    - **Error handling** with graceful failure modes
    - **Professional UI** with structured output
 
-4. **Manual Deployment (Advanced):**
+5. **Manual Deployment (Advanced):**
    ```bash
    terraform init
    terraform validate
