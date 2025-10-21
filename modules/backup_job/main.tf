@@ -25,12 +25,17 @@ resource "null_resource" "backup_job" {
       # Convert to HH:MM format
       STARTTIME=$(printf "%02d:%02d" $HOUR $MINUTE)
       
-      # For now, set daily backup (can be enhanced to parse day of week)
-      DOW="mon,tue,wed,thu,fri,sat,sun"
-      
-      # Create backup job via SSH + pvesh
+      # Create backup job via SSH + pvesh (simplified command)
       ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
-        "pvesh create /cluster/backup ${self.triggers.id} --all 0 --vmid '${self.triggers.vms}' --storage '${self.triggers.storage}' --mode '${self.triggers.mode}' --maxfiles '${self.triggers.maxfiles}' --enabled 1 --starttime '$STARTTIME' --dow '$DOW'"
+        "pvesh create /cluster/backup ${self.triggers.id} --all 0 --vmid '${self.triggers.vms}' --storage '${self.triggers.storage}' --mode '${self.triggers.mode}' --starttime '$STARTTIME'"
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Set maxfiles after job creation
+      ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
+        "pvesh set /cluster/backup/${self.triggers.id} --maxfiles '${self.triggers.maxfiles}'"
     EOT
   }
 
