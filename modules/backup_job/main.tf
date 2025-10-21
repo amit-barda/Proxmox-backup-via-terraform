@@ -17,7 +17,15 @@ resource "null_resource" "backup_job" {
     command = <<-EOT
       # Create backup job via SSH + pvesh
       ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
-        "pvesh create /cluster/backup --id '${self.triggers.id}' --storage '${self.triggers.storage}' --vms '${self.triggers.vms}' --schedule '${self.triggers.schedule}' --mode '${self.triggers.mode}' --maxfiles '${self.triggers.maxfiles}'"
+        "pvesh create /cluster/backup ${self.triggers.id} --all 0 --vmid '${self.triggers.vms}' --storage '${self.triggers.storage}' --mode '${self.triggers.mode}' --maxfiles '${self.triggers.maxfiles}' --enabled 1"
+    EOT
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Configure schedule using pvesh set
+      ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
+        "pvesh set /cluster/backup/${self.triggers.id} --schedule '${self.triggers.schedule}'"
     EOT
   }
 
