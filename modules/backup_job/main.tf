@@ -25,9 +25,27 @@ resource "null_resource" "backup_job" {
       # Convert to HH:MM format
       STARTTIME=$(printf "%02d:%02d" $HOUR $MINUTE)
       
-      # Create backup job via SSH + pvesh (simplified command)
+      # Parse day of week from cron (5th field)
+      DOW_FIELD=$(echo $CRON_SCHEDULE | awk '{print $5}')
+      
+      # Convert cron DOW to Proxmox format
+      case "$DOW_FIELD" in
+        "*") DOW="mon,tue,wed,thu,fri,sat,sun" ;;
+        "0") DOW="sun" ;;
+        "1") DOW="mon" ;;
+        "2") DOW="tue" ;;
+        "3") DOW="wed" ;;
+        "4") DOW="thu" ;;
+        "5") DOW="fri" ;;
+        "6") DOW="sat" ;;
+        "0,1,2,3,4,5,6") DOW="mon,tue,wed,thu,fri,sat,sun" ;;
+        "1,2,3,4,5") DOW="mon,tue,wed,thu,fri" ;;
+        *) DOW="mon,tue,wed,thu,fri,sat,sun" ;; # Default to daily
+      esac
+      
+      # Create backup job using correct pvesh syntax
       ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
-        "pvesh create /cluster/backup ${self.triggers.id} --all 0 --vmid '${self.triggers.vms}' --storage '${self.triggers.storage}' --mode '${self.triggers.mode}' --starttime '$STARTTIME'"
+        "pvesh create /cluster/backup --id '${self.triggers.id}' --all 0 --vmid '${self.triggers.vms}' --storage '${self.triggers.storage}' --mode '${self.triggers.mode}' --starttime '$STARTTIME' --dow '$DOW' --enabled 1"
     EOT
   }
 
@@ -35,7 +53,7 @@ resource "null_resource" "backup_job" {
     command = <<-EOT
       # Set maxfiles after job creation
       ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
-        "pvesh set /cluster/backup/${self.triggers.id} --maxfiles '${self.triggers.maxfiles}'"
+        "pvesh set /cluster/backup/${self.triggers.id} --maxfiles ${self.triggers.maxfiles}"
     EOT
   }
 
