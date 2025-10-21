@@ -252,11 +252,23 @@ log "Infrastructure configuration completed:"
 log "  - NFS storages: $storage_count"
 log "  - Backup jobs: $job_count"
 
-terraform_command="terraform apply -var=\"nfs_storages={$storages}\" -var=\"backup_jobs={$jobs}\""
+terraform_command="terraform apply -var='nfs_storages={$storages}' -var='backup_jobs={$jobs}'"
 
 echo "Deployment command:" 1>&2
 echo "$terraform_command" 1>&2
 echo "" 1>&2
+
+# Validate JSON syntax
+log "Validating JSON syntax..."
+if ! echo "{$storages}" | jq . > /dev/null 2>&1; then
+    error_exit "Invalid JSON syntax in nfs_storages configuration"
+fi
+
+if ! echo "{$jobs}" | jq . > /dev/null 2>&1; then
+    error_exit "Invalid JSON syntax in backup_jobs configuration"
+fi
+
+log "JSON syntax validation passed"
 
 # Pre-deployment validation
 echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
@@ -270,7 +282,7 @@ echo "⏳ Quick validation (${VALIDATION_TIMEOUT}s timeout)..." 1>&2
 # Run terraform plan with timeout (disable exit on error temporarily)
 set +e
 echo "🔍 Running terraform plan to check configuration..." 1>&2
-timeout $VALIDATION_TIMEOUT terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" 2>&1 | tee -a "$LOG_FILE"
+timeout $VALIDATION_TIMEOUT terraform plan -var='nfs_storages={$storages}' -var='backup_jobs={$jobs}' 2>&1 | tee -a "$LOG_FILE"
 PLAN_EXIT_CODE=$?
 set -e
 
