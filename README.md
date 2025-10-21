@@ -57,7 +57,7 @@ This Terraform-based infrastructure automation solution provides enterprise-grad
    
    The enterprise setup script provides:
    - **Input validation** for all parameters
-   - **Pre-deployment validation** with Terraform plan (5min timeout)
+   - **Quick pre-deployment validation** with Terraform plan (20s timeout)
    - **Skip validation option** for faster deployment
    - **Comprehensive logging** to `/tmp/proxmox-setup-*.log`
    - **Error handling** with graceful failure modes
@@ -74,7 +74,7 @@ This Terraform-based infrastructure automation solution provides enterprise-grad
 6. **Custom Validation Timeout:**
    ```bash
    # Set custom timeout (in seconds) for validation
-   VALIDATION_TIMEOUT=600 ./setup.sh  # 10 minutes
+   VALIDATION_TIMEOUT=60 ./setup.sh  # 1 minute
    ```
 
 ## Project Structure
