@@ -7,7 +7,7 @@ resource "null_resource" "nfs_storage" {
     export       = var.export
     content      = join(",", var.content)
     nodes        = join(",", var.nodes)
-    maxfiles     = var.maxfiles
+    maxfiles     = var.maxfiles != null ? tostring(var.maxfiles) : "0"
     enabled      = var.enabled
     pm_ssh_host  = var.pm_ssh_host
     pm_ssh_user  = var.pm_ssh_user
@@ -25,7 +25,7 @@ resource "null_resource" "nfs_storage" {
   provisioner "local-exec" {
     command = <<-EOT
       # Configure maxfiles if specified
-      if [ "${self.triggers.maxfiles}" != "" ] && [ "${self.triggers.maxfiles}" != "null" ]; then
+      if [ "${self.triggers.maxfiles}" != "0" ]; then
         ssh -o StrictHostKeyChecking=no -i "${self.triggers.pm_ssh_key}" "${self.triggers.pm_ssh_user}@${self.triggers.pm_ssh_host}" \
           "pvesh set /storage/${self.triggers.storage_name} --maxfiles ${self.triggers.maxfiles}"
       fi
