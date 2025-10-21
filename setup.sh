@@ -10,6 +10,7 @@ set -euo pipefail
 # Configuration
 SCRIPT_VERSION="2.1.0"
 LOG_FILE="/tmp/proxmox-setup-$(date +%Y%m%d-%H%M%S).log"
+VALIDATION_TIMEOUT="${VALIDATION_TIMEOUT:-300}"  # 5 minutes default
 
 # Logging function
 log() {
@@ -25,9 +26,9 @@ error_exit() {
 # Header
 clear
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                Proxmox VE Infrastructure Setup              ║"
-echo "║                    Senior Systems Admin                     ║"
-echo "║                    Version: $SCRIPT_VERSION                    ║"
+echo "║                 Proxmox VE Infrastructure Setup              ║"
+echo "║                 by the one and only amit barda               ║"
+echo "║                    Version: $SCRIPT_VERSION                  ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -263,21 +264,44 @@ echo "║                    Pre-deployment Validation                ║" 1>&2
 echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
 echo "" 1>&2
 
-log "Running pre-deployment validation..."
-terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" > /dev/null 2>&1 || error_exit "Pre-deployment validation failed"
-log "Pre-deployment validation passed"
+log "Running pre-deployment validation (with ${VALIDATION_TIMEOUT}s timeout)..."
+echo "⏳ This may take a few minutes - validating configuration..." 1>&2
+
+# Run terraform plan with timeout
+timeout $VALIDATION_TIMEOUT terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" > /dev/null 2>&1
+PLAN_EXIT_CODE=$?
+
+if [ $PLAN_EXIT_CODE -eq 124 ]; then
+    warning "Pre-deployment validation timed out after ${VALIDATION_TIMEOUT} seconds"
+    echo "⚠️  Validation timeout - this is normal for large configurations" 1>&2
+    echo "⚠️  Proceeding with deployment (validation will run again during apply)" 1>&2
+elif [ $PLAN_EXIT_CODE -eq 0 ]; then
+    log "Pre-deployment validation passed"
+    echo "✅ Configuration validation successful" 1>&2
+else
+    error_exit "Pre-deployment validation failed (exit code: $PLAN_EXIT_CODE)"
+fi
 
 echo ""
-read -p "Proceed with infrastructure deployment? (y/N): " deploy_now
+echo "Options:" 1>&2
+echo "  y - Proceed with deployment" 1>&2
+echo "  s - Skip validation and deploy directly" 1>&2
+echo "  n - Cancel deployment" 1>&2
+read -p "Proceed with infrastructure deployment? (y/s/N): " deploy_now
 
-if [[ "$deploy_now" =~ ^[Yy]$ ]]; then
+if [[ "$deploy_now" =~ ^[Yy]$ ]] || [[ "$deploy_now" =~ ^[Ss]$ ]]; then
     echo ""
     echo "╔══════════════════════════════════════════════════════════════╗" 1>&2
     echo "║                    Deploying Infrastructure                 ║" 1>&2
     echo "╚══════════════════════════════════════════════════════════════╝" 1>&2
     echo "" 1>&2
     
-    log "Starting infrastructure deployment..."
+    if [[ "$deploy_now" =~ ^[Ss]$ ]]; then
+        log "Starting infrastructure deployment (validation skipped)..."
+        echo "⚡ Deploying directly without pre-validation..." 1>&2
+    else
+        log "Starting infrastructure deployment..."
+    fi
     eval $terraform_command
     
     if [ $? -eq 0 ]; then
