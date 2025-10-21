@@ -267,14 +267,18 @@ echo "" 1>&2
 log "Running pre-deployment validation (with ${VALIDATION_TIMEOUT}s timeout)..."
 echo "⏳ Quick validation (${VALIDATION_TIMEOUT}s timeout)..." 1>&2
 
-# Run terraform plan with timeout
+# Run terraform plan with timeout (disable exit on error temporarily)
+set +e
 timeout $VALIDATION_TIMEOUT terraform plan -var="nfs_storages={$storages}" -var="backup_jobs={$jobs}" > /dev/null 2>&1
 PLAN_EXIT_CODE=$?
+set -e
 
 if [ $PLAN_EXIT_CODE -eq 124 ]; then
     warning "Pre-deployment validation timed out after ${VALIDATION_TIMEOUT} seconds"
     echo "⚡ Validation timeout - proceeding with deployment" 1>&2
     echo "⚡ Full validation will run during terraform apply" 1>&2
+    echo "" 1>&2
+    echo "This is normal - continuing with deployment..." 1>&2
 elif [ $PLAN_EXIT_CODE -eq 0 ]; then
     log "Pre-deployment validation passed"
     echo "✅ Configuration validation successful" 1>&2
